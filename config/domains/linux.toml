@@ -1,0 +1,87 @@
+# ============================================================================
+# BMinOS — Linux Domain Configuration
+# ============================================================================
+# This file defines a Linux guest domain.  The hypervisor loads the kernel
+# and initrd directly (no UEFI/BIOS needed for the guest).
+# ============================================================================
+
+[domain]
+name          = "linux-primary"
+os_type       = "linux"
+description   = "Primary Linux workstation domain"
+autostart     = true           # Start this domain at boot
+priority      = 10             # Scheduler priority (higher = more important)
+
+# ---------------------------------------------------------------------------
+# vCPU / Memory
+# ---------------------------------------------------------------------------
+[domain.cpu]
+vcpus         = 4              # Number of virtual CPUs
+pin           = []             # Physical CPU pinning (empty = any)
+topology      = "1:1:4"        # sockets:cores:threads
+
+[domain.memory]
+memory_mb     = 4096           # 4 GB RAM
+balloon       = true           # Allow dynamic resizing
+hugepages     = true           # Back with huge pages if available
+
+# ---------------------------------------------------------------------------
+# Boot
+# ---------------------------------------------------------------------------
+[domain.boot]
+method        = "direct"       # direct | uefi | multiboot
+kernel_path   = "/domains/linux/vmlinuz"
+initrd_path   = "/domains/linux/initramfs.img"
+cmdline       = "console=ttyS0,115200 root=/dev/vda1 rw quiet"
+
+# ---------------------------------------------------------------------------
+# Storage
+# ---------------------------------------------------------------------------
+[[domain.disk]]
+path          = "/domains/linux/rootfs.qcow2"
+format        = "qcow2"
+interface     = "virtio"       # virtio | ide | scsi
+readonly      = false
+bootindex     = 0
+
+[[domain.disk]]
+path          = "/domains/shared/data.img"
+format        = "raw"
+interface     = "virtio"
+readonly      = false
+bootindex     = 1
+
+# ---------------------------------------------------------------------------
+# Network
+# ---------------------------------------------------------------------------
+[[domain.network]]
+type          = "virtio-net"
+mac           = "52:54:00:12:34:56"
+bridge        = "nexus-br0"
+vlan          = 0
+multiqueue    = true
+
+# ---------------------------------------------------------------------------
+# Device Passthrough
+# ---------------------------------------------------------------------------
+[domain.passthrough]
+devices       = []             # PCI BDF addresses, e.g. ["0000:01:00.0"]
+usb_devices   = []             # USB vendor:product pairs
+
+# ---------------------------------------------------------------------------
+# Integration (Bridge)
+# ---------------------------------------------------------------------------
+[domain.bridge]
+enabled              = true
+clipboard            = true
+filesystem_sharing   = true
+shared_folders       = ["/home/shared"]
+audio                = true
+
+# ---------------------------------------------------------------------------
+# Security
+# ---------------------------------------------------------------------------
+[domain.security]
+isolation_level = "hardware"   # hardware | software | none
+vtpm            = false        # Virtual TPM
+secure_boot     = false        # UEFI Secure Boot for guest

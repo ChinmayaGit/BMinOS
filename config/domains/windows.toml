@@ -1,0 +1,114 @@
+# ============================================================================
+# BMinOS — Windows Domain Configuration
+# ============================================================================
+# This file defines a Windows guest domain.  Windows boots via UEFI from a
+# disk image (no direct kernel boot).  TPM 2.0 emulation is enabled for
+# Windows 11 compatibility.
+# ============================================================================
+
+[domain]
+name          = "windows-workstation"
+os_type       = "windows"
+description   = "Windows 11 workstation domain"
+autostart     = false          # Manual start — heavier resource usage
+priority      = 8
+
+# ---------------------------------------------------------------------------
+# vCPU / Memory
+# ---------------------------------------------------------------------------
+[domain.cpu]
+vcpus         = 6
+pin           = []
+topology      = "1:3:2"       # 1 socket, 3 cores, 2 threads (SMT)
+# Expose Hyper-V enlightenments so Windows uses paravirt interfaces
+hyperv_enlightenments = true
+
+[domain.memory]
+memory_mb     = 8192           # 8 GB RAM
+balloon       = false          # Windows balloon drivers are less reliable
+hugepages     = true
+
+# ---------------------------------------------------------------------------
+# Boot
+# ---------------------------------------------------------------------------
+[domain.boot]
+method        = "uefi"        # Windows requires UEFI boot
+firmware_path = "/firmware/OVMF_WINDOWS.fd"
+# No kernel_path / initrd — boot from disk image
+
+# ---------------------------------------------------------------------------
+# Storage
+# ---------------------------------------------------------------------------
+[[domain.disk]]
+path          = "/domains/windows/windows11.qcow2"
+format        = "qcow2"
+interface     = "virtio"       # Requires virtio storage driver in guest
+readonly      = false
+bootindex     = 0
+cache         = "writeback"
+discard       = "unmap"        # TRIM support
+
+[[domain.disk]]
+path          = "/domains/windows/virtio-drivers.iso"
+format        = "raw"
+interface     = "ide"          # IDE so Windows can see it without drivers
+readonly      = true
+bootindex     = 1
+
+# ---------------------------------------------------------------------------
+# Network
+# ---------------------------------------------------------------------------
+[[domain.network]]
+type          = "virtio-net"
+mac           = "52:54:00:AB:CD:EF"
+bridge        = "nexus-br0"
+vlan          = 0
+multiqueue    = true
+
+# ---------------------------------------------------------------------------
+# GPU Passthrough
+# ---------------------------------------------------------------------------
+[domain.gpu]
+passthrough   = true
+pci_address   = "0000:01:00.0"     # Primary GPU
+audio_pci     = "0000:01:00.1"     # GPU HDMI audio function
+vfio_group    = "/dev/vfio/1"
+rom_file      = "/domains/windows/gpu-vbios.rom"  # Optional VBIOS override
+
+# ---------------------------------------------------------------------------
+# Device Passthrough
+# ---------------------------------------------------------------------------
+[domain.passthrough]
+devices       = [
+    "0000:01:00.0",   # GPU
+    "0000:01:00.1",   # GPU audio
+]
+usb_devices   = [
+    "046d:c077",      # Logitech mouse (example)
+]
+
+# ---------------------------------------------------------------------------
+# TPM
+# ---------------------------------------------------------------------------
+[domain.tpm]
+enabled       = true           # Required for Windows 11
+version       = "2.0"
+backend       = "emulated"     # emulated | passthrough
+
+# ---------------------------------------------------------------------------
+# Integration (Bridge)
+# ---------------------------------------------------------------------------
+[domain.bridge]
+enabled              = true
+clipboard            = true
+filesystem_sharing   = true
+shared_folders       = ["C:\\Users\\Shared"]
+audio                = false   # Audio via GPU HDMI passthrough instead
+
+# ---------------------------------------------------------------------------
+# Security
+# ---------------------------------------------------------------------------
+[domain.security]
+isolation_level = "hardware"
+vtpm            = true
+secure_boot     = true         # UEFI Secure Boot enforced

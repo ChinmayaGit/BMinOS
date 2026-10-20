@@ -1,0 +1,95 @@
+# ============================================================================
+# BMinOS — Global Hypervisor Configuration
+# ============================================================================
+# This file controls hypervisor-wide behaviour.  Per-domain settings live
+# in config/domains/<name>.toml.
+# ============================================================================
+
+[hypervisor]
+name         = "BMinOS"
+version      = "0.1.0"
+log_level    = "info"          # trace | debug | info | warn | error
+serial_port  = 0x3F8           # COM1 base I/O port (x86_64)
+serial_baud  = 115200
+max_domains  = 16              # Maximum simultaneously running domains
+
+# ---------------------------------------------------------------------------
+# Scheduler
+# ---------------------------------------------------------------------------
+[scheduler]
+default_policy      = "cfs"    # cfs | round_robin | priority
+time_slice_ms       = 10       # Default vCPU time quantum
+background_cpu_limit = 5       # Percent of CPU time for background domains
+idle_halt           = true     # HLT/WFI when no domain is runnable
+
+# ---------------------------------------------------------------------------
+# Memory Management
+# ---------------------------------------------------------------------------
+[memory]
+balloon_enabled   = true       # Enable dynamic memory ballooning
+overcommit_ratio  = 1.5        # Allow 1.5x physical memory commitment
+hugepages         = true       # Use 2 MB / 1 GB pages where possible
+ept_ad_bits       = true       # Use EPT A/D bits if supported (x86_64)
+pool_reserve_mb   = 256        # Reserved pool for hypervisor internals
+
+# ---------------------------------------------------------------------------
+# Bridge (inter-domain communication & host integration)
+# ---------------------------------------------------------------------------
+[bridge]
+enabled             = true
+default_mode        = "paravirt"    # paravirt | emulated
+clipboard_sharing   = true         # Shared clipboard between domains
+filesystem_sharing  = true         # virtio-fs / Plan 9 style sharing
+audio_passthrough   = false        # Direct audio device passthrough
+shared_memory_mb    = 64           # Shared memory region for zero-copy IPC
+
+# ---------------------------------------------------------------------------
+# Security
+# ---------------------------------------------------------------------------
+[security]
+default_isolation  = "hardware"    # hardware | software | none
+secure_boot        = true          # Enforce UEFI Secure Boot chain
+iommu_required     = true          # Refuse to start without IOMMU (VT-d / SMMU)
+memory_encryption  = false         # AMD SEV / Intel TDX (when available)
+attestation        = false         # Remote attestation support
+
+# ---------------------------------------------------------------------------
+# Display
+# ---------------------------------------------------------------------------
+[display]
+switch_animation   = "slide"       # slide | fade | instant
+switch_hotkey      = "Super+Tab"   # Hotkey to cycle domain displays
+resolution         = "native"      # native | 1920x1080 | 2560x1440 | ...
+vsync              = true
+gpu_scheduler      = "fair"        # fair | priority
+
+# ---------------------------------------------------------------------------
+# OS Store & Auto-Installer
+# ---------------------------------------------------------------------------
+[store]
+auto_install_enabled   = true
+default_storage_path   = "/disks"
+unattended_installation= true
+bypass_win11_checks    = true      # Bypass Win11 TPM 2.0/SecureBoot/RAM checks
+virtio_driver_inject   = true      # Automatically mount VirtIO driver ISO during install
+checksum_verify        = true      # Enforce SHA-256 verification on ISO downloads
+
+# ---------------------------------------------------------------------------
+# Dom0 Management Browser & Streaming Downloader
+# ---------------------------------------------------------------------------
+[browser]
+enabled                = true
+default_home_url       = "https://bminos.local/store"
+download_chunk_kb      = 64
+max_download_rate_mbps = 0         # 0 = unlimited bandwidth
+allow_custom_urls      = true
+
+# ---------------------------------------------------------------------------
+# USB Mass Storage & Pendrive Support
+# ---------------------------------------------------------------------------
+[usb]
+xhci_enabled           = true
+mass_storage_enabled   = true
+auto_detect_bootable   = true      # Detect live installer pendrives on insertion
+allow_pendrive_burn    = true      # Allow writing ISOs directly to pendrive
+allow_guest_passthrough= true      # Enable hot-plug assignment to guest VMs
